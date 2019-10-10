@@ -125,6 +125,12 @@ class FavoritesController extends Controller {
         }
     }
 
+    public function getCategoryShareLink($id) {
+        $response = $this->favoritesService->getCategoryShareLink($id, $this->userId);
+
+        return new DataResponse($response);
+    }
+
     /**
      * @NoAdminRequired
      */
