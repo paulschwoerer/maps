@@ -756,3 +756,22 @@ tr.selected td {
 .ui-autocomplete {
     z-index: 9999;
 }
+
+.category-line .category-sharing-dialogue {
+    width: 100%;
+    background: rgba(#000, .1);
+    padding: 0.5em;
+    display: none;
+}
+
+.category-line.sharingDialogueVisible .category-sharing-dialogue {
+    display: block;
+}
+
+.category-sharing-checkbox {
+    display: block;
+}
+
+.category-sharing-link {
+
+}

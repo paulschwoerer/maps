@@ -24,6 +24,7 @@ function FavoritesController(optionsController, timeFilterController) {
     this.lastUsedCategory = null;
 
     this.movingFavoriteId = null;
+    this.sharingFavoriteId = null;
 
     // used by optionsController to know if favorite loading
     // was done before or after option restoration
@@ -109,6 +110,37 @@ FavoritesController.prototype = {
                 that.leaveMoveFavoriteMode();
             }
             that.enterAddFavoriteMode(cat);
+        });
+        // Open or close sharing dialogue for favorites category
+        $('body').on('click', '.categoryShareButton', function(e) {
+            var category = $(this).parent().parent().parent().attr('category');
+            var openCategory = that.sharingFavoriteId;
+
+            if (openCategory !== null) {
+                that.leaveSharingFavoriteMode();
+            }
+
+            if (openCategory !== category) {
+                that.enterSharingFavoriteMode(category);
+            }
+        });
+        $('body').on('click', '.category-sharing-checkbox', function(e) {
+            var category = $(this).parent().parent().attr('category');
+
+
+            var url = OC.generateUrl('/apps/maps/favorites-category/' + category + '/get-share-link');
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: {},
+                async: true
+            }).done(function (response) {
+                console.log(response)
+            }).always(function (response) {
+
+            }).fail(function() {
+                OC.Notification.showTemporary(t('maps', 'Failed to share favorites category'));
+            });
         });
         // cancel favorite edition
         $('body').on('click', '.canceleditfavorite', function(e) {
@@ -472,61 +504,68 @@ FavoritesController.prototype = {
         // side menu entry
         var imgurl = OC.generateUrl('/svg/core/actions/star?color='+color);
         var li = '<li class="category-line" id="'+name+'-category" category="'+rawName+'">' +
-        '    <a href="#" class="category-name" id="'+name+'-category-name" style="background-image: url('+imgurl+')">'+rawName+'</a>' +
-        '    <div class="app-navigation-entry-utils">' +
-        '        <ul>' +
-        '            <li class="app-navigation-entry-utils-counter" style="display:none;">1</li>' +
-        '            <li class="app-navigation-entry-utils-menu-button categoryMenuButton">' +
-        '                <button></button>' +
-        '            </li>' +
-        '        </ul>' +
-        '    </div>' +
-        '    <div class="app-navigation-entry-menu">' +
-        '        <ul>' +
-        '            <li>' +
-        '                <a href="#" class="addFavoriteInCategory">' +
-        '                    <span class="icon-add"></span>' +
-        '                    <span>'+t('maps', 'Add a favorite')+'</span>' +
-        '                </a>' +
-        '            </li>' +
-        '            <li>' +
-        '                <a href="#" class="renameCategory">' +
-        '                    <span class="icon-rename"></span>' +
-        '                    <span>'+t('maps', 'Rename')+'</span>' +
-        '                </a>' +
-        '            </li>' +
-        '            <li>' +
-        '                <a href="#" class="zoomCategoryButton">' +
-        '                    <span class="icon-search"></span>' +
-        '                    <span>'+t('maps', 'Zoom to bounds')+'</span>' +
-        '                </a>' +
-        '            </li>' +
-        '            <li>' +
-        '                <a href="#" class="exportCategoryButton">' +
-        '                    <span class="icon-category-office"></span>' +
-        '                    <span>'+t('maps', 'Export')+'</span>' +
-        '                </a>' +
-        '            </li>' +
-        '            <li>' +
-        '                <a href="#" class="deleteCategory">' +
-        '                    <span class="icon-delete"></span>' +
-        '                    <span>'+t('maps', 'Delete')+'</span>' +
-        '                </a>' +
-        '            </li>' +
-        '        </ul>' +
-        '    </div>' +
-        '    <div class="app-navigation-entry-deleted">' +
-        '        <div class="app-navigation-entry-deleted-description">'+t('maps', 'Category deleted')+'</div>' +
-        '        <button class="app-navigation-entry-deleted-button icon-history undoDeleteCategory" title="Undo"></button>' +
-        '    </div>' +
-        '    <div class="app-navigation-entry-edit">' +
-        '        <div>' +
-        '            <input type="text" value="'+rawName+'" class="renameCategoryInput">' +
-        '            <input type="submit" value="" class="icon-close renameCategoryClose">' +
-        '            <input type="submit" value="" class="icon-checkmark renameCategoryOk">' +
-        '        </div>' +
-        '    </div>' +
-        '</li>';
+            '    <a href="#" class="category-name" id="'+name+'-category-name" style="background-image: url('+imgurl+')">'+rawName+'</a>' +
+            '    <div class="app-navigation-entry-utils">' +
+            '        <ul>' +
+            '            <li class="app-navigation-entry-utils-counter" style="display:none;">1</li>' +
+            '            <li class="app-navigation-entry-utils-menu-button categoryShareButton">' +
+            '                <button class="icon-shared"></button>' +
+            '            </li>' +
+            '            <li class="app-navigation-entry-utils-menu-button categoryMenuButton">' +
+            '                <button></button>' +
+            '            </li>' +
+            '        </ul>' +
+            '    </div>' +
+            '    <div class="app-navigation-entry-menu">' +
+            '        <ul>' +
+            '            <li>' +
+            '                <a href="#" class="addFavoriteInCategory">' +
+            '                    <span class="icon-add"></span>' +
+            '                    <span>'+t('maps', 'Add a favorite')+'</span>' +
+            '                </a>' +
+            '            </li>' +
+            '            <li>' +
+            '                <a href="#" class="renameCategory">' +
+            '                    <span class="icon-rename"></span>' +
+            '                    <span>'+t('maps', 'Rename')+'</span>' +
+            '                </a>' +
+            '            </li>' +
+            '            <li>' +
+            '                <a href="#" class="zoomCategoryButton">' +
+            '                    <span class="icon-search"></span>' +
+            '                    <span>'+t('maps', 'Zoom to bounds')+'</span>' +
+            '                </a>' +
+            '            </li>' +
+            '            <li>' +
+            '                <a href="#" class="exportCategoryButton">' +
+            '                    <span class="icon-category-office"></span>' +
+            '                    <span>'+t('maps', 'Export')+'</span>' +
+            '                </a>' +
+            '            </li>' +
+            '            <li>' +
+            '                <a href="#" class="deleteCategory">' +
+            '                    <span class="icon-delete"></span>' +
+            '                    <span>'+t('maps', 'Delete')+'</span>' +
+            '                </a>' +
+            '            </li>' +
+            '        </ul>' +
+            '    </div>' +
+            '    <div class="app-navigation-entry-deleted">' +
+            '        <div class="app-navigation-entry-deleted-description">'+t('maps', 'Category deleted')+'</div>' +
+            '        <button class="app-navigation-entry-deleted-button icon-history undoDeleteCategory" title="Undo"></button>' +
+            '    </div>' +
+            '    <div class="app-navigation-entry-edit">' +
+            '        <div>' +
+            '            <input type="text" value="'+rawName+'" class="renameCategoryInput">' +
+            '            <input type="submit" value="" class="icon-close renameCategoryClose">' +
+            '            <input type="submit" value="" class="icon-checkmark renameCategoryOk">' +
+            '        </div>' +
+            '    </div>' +
+            '    <div class="category-sharing-dialogue">' +
+            '       <input type="checkbox" class="category-sharing-checkbox">' +
+            '       <span class="category-sharing-link"></span>' +
+            '    </div>' +
+            '</li>';
 
         var beforeThis = null;
         var rawLower = rawName.toLowerCase();
@@ -668,6 +707,16 @@ FavoritesController.prototype = {
         $('#addFavoriteButton button').addClass('icon-add').removeClass('icon-history');
         this.addFavoriteMode = false;
         this.addFavoriteCategory = null;
+    },
+
+    enterSharingFavoriteMode: function(categoryName) {
+        $('#' + categoryName.replace(' ', '-') + '-category').addClass('sharingDialogueVisible');
+        this.sharingFavoriteId = categoryName;
+    },
+
+    leaveSharingFavoriteMode: function() {
+        $('#' + this.sharingFavoriteId.replace(' ', '-') + '-category').removeClass('sharingDialogueVisible');
+        this.sharingFavoriteId = null;
     },
 
     addFavoriteClickMap: function(e) {
