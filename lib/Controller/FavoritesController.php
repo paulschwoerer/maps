@@ -125,6 +125,16 @@ class FavoritesController extends Controller {
         }
     }
 
+    public function shareCategory($id, $user) {
+        if ($user === $this->userId) {
+            return new DataResponse('Cannot share to yourself.', 400);
+        }
+
+        $response = $this->favoritesService->shareCategory($id, $this->userId, $user);
+
+        return new PublicTemplateResponse($response, 400);
+    }
+
     public function getCategoryShareLink($id) {
         $response = $this->favoritesService->getCategoryShareLink($id, $this->userId);
 

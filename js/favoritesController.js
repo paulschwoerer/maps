@@ -124,6 +124,30 @@ FavoritesController.prototype = {
                 that.enterSharingFavoriteMode(category);
             }
         });
+
+        $('body').on('submit', '.category-sharing-form', function(e) {
+            e.preventDefault();
+
+            var category = $(this).parent().parent().attr('category');
+            var testUser = this.querySelector('input').value;
+
+            var url = OC.generateUrl('/apps/maps/favorites-category/' + category + '/share');
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: {
+                    user: testUser
+                },
+                async: true
+            }).done(function (response) {
+                console.log(response)
+            }).always(function (response) {
+
+            }).fail(function() {
+                OC.Notification.showTemporary(t('maps', 'Failed to share favorites category'));
+            });
+        });
+
         $('body').on('click', '.category-sharing-checkbox', function(e) {
             var category = $(this).parent().parent().attr('category');
 
@@ -562,8 +586,9 @@ FavoritesController.prototype = {
             '        </div>' +
             '    </div>' +
             '    <div class="category-sharing-dialogue">' +
-            '       <input type="checkbox" class="category-sharing-checkbox">' +
-            '       <span class="category-sharing-link"></span>' +
+            '        <form method="post" action="#" class="category-sharing-form">' +
+            '            <input type="text" value="test">' +
+            '        </form>' +
             '    </div>' +
             '</li>';
 

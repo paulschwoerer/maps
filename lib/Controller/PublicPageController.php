@@ -11,36 +11,57 @@
 
 namespace OCA\Maps\Controller;
 
-use OCP\IConfig;
-use OCP\IRequest;
+use OC\User\Manager;
+use OCA\Maps\Service\FavoritesService;
 use OCP\AppFramework\Http\TemplateResponse;
+use OCP\IConfig;
+use OCP\ILogger;
+use OCP\IRequest;
+use OCP\ISession;
+use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Template\PublicTemplateResponse;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Controller;
+use OCP\AppFramework\PublicShareController;
 
-class PageController extends Controller {
-    private $userId;
+class PublicPageController extends PublicShareController
+{
     private $config;
+    private $logger;
+    private $favoritesService;
 
-    public function __construct($AppName, IRequest $request, $UserId, IConfig $config){
-        parent::__construct($AppName, $request);
-        $this->userId = $UserId;
+    public function __construct($appName, IRequest $request, ISession $session, IConfig $config, ILogger $logger, FavoritesService $favoritesService)
+    {
+        parent::__construct($appName, $request, $session);
         $this->config = $config;
+        $this->logger = $logger;
+        $this->favoritesService = $favoritesService;
     }
 
     /**
-     * CAUTION: the @Stuff turns off security checks; for this page no admin is
-     *          required and no CSRF check. If you don't know what CSRF is, read
-     *          it up in the docs or you might create a security hole. This is
-     *          basically the only required method to add this exemption, don't
-     *          add it to any other method if you don't exactly know what it does
+     * @param $token
      *
-     * @NoAdminRequired
+     * @return DataResponse|PublicTemplateResponse
+     *
+     * @PublicPage
      * @NoCSRFRequired
      */
-    public function index() {
-        $params = array('user' => $this->userId);
-        $response = new TemplateResponse('maps', 'index', $params);
+    public function sharedFavoritesCategory($token)
+    {
+        if ($token === '') {
+            return new DataResponse([], Http::STATUS_BAD_REQUEST);
+        }
+
+        $share = $this->favoritesService->getFavoritesShare($token);
+
+
+        $response = new PublicTemplateResponse('maps', 'public/favorites_index', []);
+
+        if ($share !== false) {
+            $ownerName = \OC::$server->getUserManager()->get($share['owner'])->getDisplayName();
+
+            $response->setHeaderTitle($share['category']);
+            $response->setHeaderDetails('shared by ' . $ownerName);
+        }
 
         $this->addCsp($response);
 
@@ -48,37 +69,42 @@ class PageController extends Controller {
     }
 
     /**
-     * @NoAdminRequired
-     * @NoCSRFRequired
+     * Get a hash of the password for this share
+     *
+     * To ensure access is blocked when the password to a share is changed we store
+     * a hash of the password for this token.
+     *
+     * @since 14.0.0
      */
-    public function openGeoLink($url) {
-        $params = array('user' => $this->userId);
-        $params["geourl"]  = $url;
-        $response = new TemplateResponse('maps', 'index', $params);
-        if (class_exists('OCP\AppFramework\Http\ContentSecurityPolicy')) {
-            $csp = new \OCP\AppFramework\Http\ContentSecurityPolicy();
-            // map tiles
-            $csp->addAllowedImageDomain('https://*.tile.openstreetmap.org');
-            $csp->addAllowedImageDomain('https://server.arcgisonline.com');
-            $csp->addAllowedImageDomain('https://*.cartocdn.com');
-            $csp->addAllowedImageDomain('https://*.opentopomap.org');
-            $csp->addAllowedImageDomain('https://*.cartocdn.com');
-            $csp->addAllowedImageDomain('https://*.ssl.fastly.net');
-            $csp->addAllowedImageDomain('https://*.openstreetmap.se');
-            // routing engine
-            $csp->addAllowedConnectDomain('https://*.project-osrm.org');
-            // TODO allow connections to router engine
-            //$csp->addAllowedConnectDomain('http://192.168.0.66:8989');
-            // poi images
-            $csp->addAllowedImageDomain('https://nominatim.openstreetmap.org');
-            // search and geocoder
-            $csp->addAllowedConnectDomain('https://nominatim.openstreetmap.org');
-            $response->setContentSecurityPolicy($csp);
-        }
-        return $response;
+    protected function getPasswordHash(): string
+    {
+        return ""; // TODO:
     }
 
-    private function addCsp($response) {
+    /**
+     * Is the provided token a valid token
+     *
+     * This function is already called from the middleware directly after setting the token.
+     *
+     * @since 14.0.0
+     */
+    public function isValidToken(): bool
+    {
+        return $this->favoritesService->isValidToken($this->getToken());
+    }
+
+    /**
+     * Is a share with this token password protected
+     *
+     * @since 14.0.0
+     */
+    protected function isPasswordProtected(): bool
+    {
+        return false;
+    }
+
+    private function addCsp($response)
+    {
         if (class_exists('OCP\AppFramework\Http\ContentSecurityPolicy')) {
             $csp = new \OCP\AppFramework\Http\ContentSecurityPolicy();
             // map tiles

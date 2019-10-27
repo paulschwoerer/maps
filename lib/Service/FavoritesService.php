@@ -53,6 +53,108 @@ class FavoritesService
     }
 
     /**
+     * Check if a given token is valid.
+     *
+     * @param $token
+     * @return bool
+     */
+    public function isValidToken($token) {
+        $qb = $this->qb;
+
+        $qb->select("id")
+            ->from("maps_favorite_shares")
+            ->where(
+                $qb->expr()->eq('token', $qb->createNamedParameter($token, IQueryBuilder::PARAM_STR))
+            );
+
+        $req = $qb->execute();
+
+        return $req->rowCount() > 0;
+    }
+
+    public function getFavoritesShare($token) {
+        $qb = $this->qb;
+
+        $qb->select("owner", "category")
+            ->from("maps_favorite_shares")
+            ->where(
+                $qb->expr()->eq('token', $qb->createNamedParameter($token, IQueryBuilder::PARAM_STR))
+            );
+
+        $req = $qb->execute();
+
+        $row = $req->fetch();
+
+        if ($row == false) {
+            return null;
+        }
+
+        return [
+            'owner' => $row['owner'],
+            'category' => $row['category']
+        ];
+    }
+
+    /**
+     * @param $token
+     * @return bool | array
+     */
+    public function getFavoritesByShareToken($token) {
+        $favorites = [];
+        $qb = $this->qb;
+
+        $qb->select('id', 'owner', 'category', 'token')
+            ->from('maps_favorite_shares')
+            ->where(
+                $qb->expr()->eq('token', $qb->createNamedParameter($token, IQueryBuilder::PARAM_STR))
+            );
+
+        $req = $qb->execute();
+
+        if ($req->rowCount() === 0) {
+            return false;
+        }
+
+        $row = $req->fetch();
+
+        $id = $row['id'];
+        $type = $row['type'];
+        $userId = $row['owner'];
+        $category = $row['category'];
+
+        $req->closeCursor();
+        $qb->resetQueryParts();
+
+        $qb->select('id', 'name', 'date_created', 'date_modified', 'lat', 'lng', 'category', 'comment', 'extensions')
+            ->from('maps_favorites', 'f')
+            ->where(
+                $qb->expr()->eq('user_id', $qb->createNamedParameter($userId, IQueryBuilder::PARAM_STR))
+            )->andWhere(
+                $qb->expr()->eq('category', $qb->createNamedParameter($category, IQueryBuilder::PARAM_STR))
+            );
+
+        $req = $qb->execute();
+
+        while ($row = $req->fetch()) {
+            array_push($favorites, [
+                'id' => intval($row['id']),
+                'name' => $row['name'],
+                'date_modified' => intval($row['date_modified']),
+                'date_created' => intval($row['date_created']),
+                'lat' => floatval($row['lat']),
+                'lng' => floatval($row['lng']),
+                'category' => $row['category'],
+                'comment' => $row['comment'],
+                'extensions' => $row['extensions']
+            ]);
+        }
+        $req->closeCursor();
+        $qb->resetQueryParts();
+
+        return $favorites;
+    }
+
+    /**
      * @param string $userId
      * @param int $pruneBefore
      * @return array with favorites
@@ -258,6 +360,19 @@ class FavoritesService
             );
         $req = $qb->execute();
         $qb = $qb->resetQueryParts();
+    }
+
+    public function shareCategory($category, $owner, $toUser) {
+        $qb = $this->qb;
+
+        // TODO: check if user owns category
+
+        $qb->insert('maps_favorite_shares')->values([
+            'owner' => $qb->createNamedParameter($owner, IQueryBuilder::PARAM_STR),
+            'toUser' => $qb->createNamedParameter($toUser, IQueryBuilder::PARAM_STR),
+            'category' => $qb->createNamedParameter($category, IQueryBuilder::PARAM_STR),
+        ]);
+        $qb->execute();
     }
 
     public function getCategoryShareLink($categoryId, $userId)
