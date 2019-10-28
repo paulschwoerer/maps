@@ -1,5 +1,3 @@
-import { attribution } from "../src/utils/mapUtils";
-
 (function($, OC) {
   $(function() {
     // avoid sidebar to appear when grabing map to the right

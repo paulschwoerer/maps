@@ -1,18 +1,98 @@
 <template>
-  <div id="map-container"></div>
+  <div id="map-container">
+    <MapClickPopup ref="popup" v-show="popupOpened" />
+  </div>
 </template>
 
 <script>
 import L from "leaflet";
+import VueTypes from "vue-types";
+import "leaflet.markercluster";
+import "leaflet.featuregroup.subgroup";
+
+import MapClickPopup from "./map/MapClickPopup";
+
+const CLUSTER_MARKER_VIEW_SIZE = 27;
+const MAP_ID = "map-container";
 
 export default {
   name: "MapContainer",
+
+  props: {
+    favoriteCategories: VueTypes.object.isRequired
+  },
+
+  created() {
+    this.categoryLayers = null;
+    this.categoryIcons = null;
+
+    this.cluster = L.markerClusterGroup({
+      // iconCreateFunction: this.getClusterIconCreateFunction(), // TODO
+      spiderfyOnMaxZoom: false,
+      maxClusterRadius: 28,
+      zoomToBoundsOnClick: false,
+      chunkedLoading: true,
+      icon: {
+        iconSize: [CLUSTER_MARKER_VIEW_SIZE, CLUSTER_MARKER_VIEW_SIZE]
+      }
+    });
+  },
 
   mounted() {
     this.initMap();
   },
 
+  data() {
+    return {
+      popupOpened: false
+    };
+  },
+
+  watch: {
+    favoriteCategories() {
+      if (this.map) {
+        const layers = {};
+        const icons = {};
+
+        for (const categoryKey of Object.keys(this.favoriteCategories)) {
+          icons[categoryKey] = L.divIcon({
+            iconAnchor: [9, 9],
+            className: "leaflet-marker-favorite",
+            html:
+              '<div class="favoriteMarker ' +
+              categoryKey +
+              'CategoryMarker"></div>'
+          });
+
+          const markers = this.favoriteCategories[categoryKey].map(favorite => {
+            return L.marker(L.latLng(favorite.lat, favorite.lng), {
+              icon: icons[categoryKey]
+            });
+          });
+
+          layers[categoryKey] = L.featureGroup.subGroup(this.cluster, markers);
+          layers[categoryKey].addTo(this.map);
+        }
+
+        this.cluster.addTo(this.map);
+
+        this.categoryLayers = layers;
+        this.categoryIcons = icons;
+      }
+    }
+  },
+
   methods: {
+    openPopup(lat, lng) {
+      this.map.openPopup(this.$refs.popup.$el, { lat, lng });
+      this.popupOpened = true;
+    },
+
+    closePopup() {
+      this.map.closePopup();
+      this.popupOpened = false;
+    },
+
     initMap() {
       const starImageUrl = OC.generateUrl(
         "/svg/core/actions/star-dark?color=000000"
@@ -36,7 +116,7 @@ export default {
         "/svg/core/actions/share?color=000000"
       );
 
-      this.map = L.map("map-container", {
+      this.map = L.map(MAP_ID, {
         zoom: 2,
         zoomControl: false,
         maxZoom: 19,
@@ -56,7 +136,7 @@ export default {
             icon: starImageUrl,
             callback: this.$emit("addFavorite")
           },
-          {
+          /*{
             text: t("maps", "Place photos"),
             icon: photoImageUrl,
             callback: this.$emit("placePhotos")
@@ -74,9 +154,9 @@ export default {
             text: t("maps", "Share this location"),
             icon: shareImageUrl,
             callback: this.$emit("shareLocation")
-          },
-          "-",
-          {
+          },*/
+          "-"
+          /*{
             text: t("maps", "Route from here"),
             icon: markerGreenImageUrl,
             callback: this.$emit("routeFrom")
@@ -90,8 +170,21 @@ export default {
             text: t("maps", "Route to here"),
             icon: markerRedImageUrl,
             callback: this.$emit("routeTo")
-          }
+          }*/
         ]
+      });
+
+      /*this.map.on("contextmenu", e => {
+        if ($(e.originalEvent.target).attr("id") === MAP_ID) {
+          this.openPopup(e.latlng.lat, e.latlng.lng);
+        }
+      });*/
+
+      this.map.on("click", e => {
+        if ($(e.originalEvent.target).attr("id") === MAP_ID) {
+          this.openPopup(e.latlng.lat, e.latlng.lng);
+          // this.$emit("mapLeftClick", e);
+        }
       });
 
       const osm = L.tileLayer(
@@ -150,6 +243,10 @@ export default {
 
       L.control.zoom({ position: "bottomright" }).addTo(this.map);
     }
+  },
+
+  components: {
+    MapClickPopup
   }
 };
 </script>
@@ -192,6 +289,23 @@ export default {
   .leaflet-control-layers:not(.leaflet-control-layers-expanded) > a {
     width: 100%;
     height: 100%;
+  }
+
+  .favoriteMarker {
+    height: 18px !important;
+    width: 18px !important;
+    /*-webkit-mask: url("../../css/images/star-circle.svg") no-repeat 50% 50%;
+    -webkit-mask-size: 18px;
+    mask: url("../../css/images/star-circle.svg") no-repeat 50% 50%;
+    mask-size: 18px;
+    background: url("../../css/images/star-white.svg") no-repeat 50% 50%;
+    background-size: 18px 18px;*/ // TODO: webpack image/svg config
+    background: red;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #888;
+  }
+
+  .leaflet-marker-favorite-cluster {
   }
 
   /* Adjust button styles to Nextcloud */

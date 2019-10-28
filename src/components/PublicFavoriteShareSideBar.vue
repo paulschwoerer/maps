@@ -1,11 +1,11 @@
 <template>
   <AppNavigation>
     <ul id="app-vueexample-navigation">
-      <AppNavigationCaption title="Lala" />
+      <AppNavigationNew :text="t('maps', 'Add favorite')" />
       <AppNavigationItem
-        v-for="item in favorites"
-        :key="item.name"
-        :title="item.name"
+        v-for="favorite in favorites"
+        :key="favorite.name"
+        :title="favorite.name"
       />
     </ul>
     <AppNavigationSettings>
@@ -19,40 +19,22 @@ import AppNavigation from "@nextcloud/vue/dist/Components/AppNavigation";
 import AppNavigationCaption from "@nextcloud/vue/dist/Components/AppNavigationCaption";
 import AppNavigationSettings from "@nextcloud/vue/dist/Components/AppNavigationSettings";
 import AppNavigationItem from "@nextcloud/vue/dist/Components/AppNavigationItem";
-import {
-  apiRequest,
-  getCurrentPublicShareToken,
-  showNotification
-} from "../utils/common";
+import AppNavigationNew from "@nextcloud/vue/dist/Components/AppNavigationNew";
+import VueTypes from "vue-types";
 
 export default {
   name: "SideBar",
 
-  mounted() {
-    console.log(getCurrentPublicShareToken());
-    apiRequest(
-      `/apps/maps/api/1.0/public/${getCurrentPublicShareToken()}/favorites`,
-      "GET"
-    )
-      .then(data => {
-        this.favorites = data;
-      })
-      .catch(() =>
-        showNotification(t("maps", "Failed to share favorites category"))
-      );
-  },
-
-  data() {
-    return {
-      favorites: []
-    };
+  props: {
+    favorites: VueTypes.arrayOf(VueTypes.object).isRequired
   },
 
   components: {
     AppNavigation,
     AppNavigationCaption,
     AppNavigationSettings,
-    AppNavigationItem
+    AppNavigationItem,
+    AppNavigationNew
   }
 };
 </script>

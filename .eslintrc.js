@@ -18,7 +18,8 @@ module.exports = {
     OC: false,
     OCA: false,
     t: false,
-    n: false
+    n: false,
+    $: false // TODO: remove once jQuery has been removed
   },
   parserOptions: {
     parser: "babel-eslint"
