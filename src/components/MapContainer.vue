@@ -1,6 +1,36 @@
 <template>
   <div id="map-container">
-    <MapClickPopup ref="popup" v-show="popupOpened" />
+    <LMap
+      :center="mapOptions.center"
+      :maxBounds="mapOptions.maxBounds"
+      :minZoom="mapOptions.minZoom"
+      :maxZoom="mapOptions.maxZoom"
+      :zoom="mapOptions.zoom"
+      ref="map"
+    >
+      <LTileLayer v-for="layer in layers" :key="layer.name" :url="layer.url" />
+      <LMarkerCluster
+        v-for="categoryKey in Object.keys(favoriteCategories)"
+        :key="categoryKey"
+        :options="{
+          iconCreateFunction: getClusterIconCreateFunction(categoryKey),
+          animate: mapOptions.animateClusters,
+          showCoverageOnHover: mapOptions.showClusterBounds
+        }"
+      >
+        <LMarker
+          v-for="favorite in favoriteCategories[categoryKey]"
+          :key="`${favorite.lat}${favorite.lng}`"
+          :lat-lng="[favorite.lat, favorite.lng]"
+          :icon="createNewDivIcon(categoryKey)"
+        ></LMarker>
+      </LMarkerCluster>
+      <LFeatureGroup ref="popupLayer">
+        <LPopup :lat-lng="[0, 0]">
+          <MapClickPopup />
+        </LPopup>
+      </LFeatureGroup>
+    </LMap>
   </div>
 </template>
 
@@ -11,6 +41,10 @@ import "leaflet.markercluster";
 import "leaflet.featuregroup.subgroup";
 
 import MapClickPopup from "./map/MapClickPopup";
+
+import { LMap, LTileLayer, LMarker, LPopup, LFeatureGroup } from "vue2-leaflet";
+import LMarkerCluster from "vue2-leaflet-markercluster";
+import { latLngBounds, latLng } from "leaflet";
 
 const CLUSTER_MARKER_VIEW_SIZE = 27;
 const MAP_ID = "map-container";
@@ -26,30 +60,54 @@ export default {
     this.categoryLayers = null;
     this.categoryIcons = null;
 
-    this.cluster = L.markerClusterGroup({
-      // iconCreateFunction: this.getClusterIconCreateFunction(), // TODO
-      spiderfyOnMaxZoom: false,
-      maxClusterRadius: 28,
-      zoomToBoundsOnClick: false,
-      chunkedLoading: true,
-      icon: {
-        iconSize: [CLUSTER_MARKER_VIEW_SIZE, CLUSTER_MARKER_VIEW_SIZE]
-      }
-    });
+    // this.cluster = L.markerClusterGroup({
+    //   // iconCreateFunction: this.getClusterIconCreateFunction(), // TODO
+    //   spiderfyOnMaxZoom: false,
+    //   maxClusterRadius: 28,
+    //   zoomToBoundsOnClick: false,
+    //   chunkedLoading: true,
+    //   icon: {
+    //     iconSize: [CLUSTER_MARKER_VIEW_SIZE, CLUSTER_MARKER_VIEW_SIZE]
+    //   }
+    // });
   },
 
   mounted() {
-    this.initMap();
+    // this.initMap();
+
+    setTimeout(() => {
+      this.$refs.popupLayer.mapObject.openPopup([0, 0]);
+    }, 1000);
   },
 
   data() {
     return {
-      popupOpened: false
+      showPopup: false,
+      popupOpened: false,
+      mapOptions: {
+        center: [0, 0],
+        zoom: 2,
+        minZoom: 2,
+        maxZoom: 19,
+        bounds: latLngBounds([
+          [40.70081290280357, -74.26963806152345],
+          [40.82991732677597, -74.08716201782228]
+        ]),
+        maxBounds: latLngBounds([[-90, 720], [90, -720]]),
+        animateClusters: true, // TODO: use setting?
+        showClusterBounds: false
+      },
+      layers: [
+        {
+          name: "OSM",
+          url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        }
+      ]
     };
   },
 
   watch: {
-    favoriteCategories() {
+    /*favoriteCategories() {
       if (this.map) {
         const layers = {};
         const icons = {};
@@ -79,10 +137,38 @@ export default {
         this.categoryLayers = layers;
         this.categoryIcons = icons;
       }
-    }
+    }*/
   },
 
   methods: {
+    createNewDivIcon(categoryKey) {
+      return new L.DivIcon({
+        iconAnchor: [9, 9],
+        className: "leaflet-marker-favorite",
+        html:
+          '<div class="favorite-marker ' +
+          categoryKey +
+          'CategoryMarker"></div>'
+      });
+    },
+
+    getClusterIconCreateFunction(categoryKey) {
+      return cluster => {
+        const label = cluster.getChildCount();
+
+        return new L.DivIcon({
+          iconAnchor: [14, 14],
+          className: "leaflet-marker-favorite-cluster cluster-marker",
+          html:
+            '<div class="favorite-cluster-marker ' +
+            categoryKey +
+            'CategoryMarker"></div>​<span class="label">' +
+            label +
+            "</span>"
+        });
+      };
+    },
+
     openPopup(lat, lng) {
       this.map.openPopup(this.$refs.popup.$el, { lat, lng });
       this.popupOpened = true;
@@ -122,6 +208,7 @@ export default {
         maxZoom: 19,
         minZoom: 2,
         center: new L.LatLng(0, 0),
+        closePopupOnClick: true,
         maxBounds: new L.LatLngBounds(
           new L.LatLng(-90, 720),
           new L.LatLng(90, -720)
@@ -183,7 +270,6 @@ export default {
       this.map.on("click", e => {
         if ($(e.originalEvent.target).attr("id") === MAP_ID) {
           this.openPopup(e.latlng.lat, e.latlng.lng);
-          // this.$emit("mapLeftClick", e);
         }
       });
 
@@ -246,7 +332,13 @@ export default {
   },
 
   components: {
-    MapClickPopup
+    MapClickPopup,
+    LMap,
+    LFeatureGroup,
+    LMarker,
+    LMarkerCluster,
+    LTileLayer,
+    LPopup
   }
 };
 </script>
@@ -291,21 +383,46 @@ export default {
     height: 100%;
   }
 
-  .favoriteMarker {
-    height: 18px !important;
-    width: 18px !important;
+  .favorite-marker,
+  .favorite-cluster-marker {
     /*-webkit-mask: url("../../css/images/star-circle.svg") no-repeat 50% 50%;
-    -webkit-mask-size: 18px;
     mask: url("../../css/images/star-circle.svg") no-repeat 50% 50%;
-    mask-size: 18px;
-    background: url("../../css/images/star-white.svg") no-repeat 50% 50%;
-    background-size: 18px 18px;*/ // TODO: webpack image/svg config
-    background: red;
+    background: url("../../css/images/star-white.svg") no-repeat 50% 50%; */ // TODO: webpack image/svg config
+    background: red; // TODO: remove
     border-radius: 50%;
     box-shadow: 0 0 10px #888;
   }
 
+  .favorite-marker {
+    height: 18px !important;
+    width: 18px !important;
+    /*-webkit-mask-size: 18px;
+    mask-size: 18px;
+    background-size: 18px 18px;*/
+  }
+
+  .favorite-cluster-marker {
+    height: 27px !important;
+    width: 27px !important;
+    /*-webkit-mask-size: 27px;
+    mask-size: 27px;
+    background-size: 27px 27px;*/
+  }
+
   .leaflet-marker-favorite-cluster {
+    .label {
+      position: absolute;
+      top: -7px;
+      right: 0;
+      color: #fff;
+      background-color: #333;
+      border-radius: 9px;
+      height: 18px;
+      min-width: 18px;
+      line-height: 12px;
+      text-align: center;
+      padding: 3px;
+    }
   }
 
   /* Adjust button styles to Nextcloud */

@@ -9,6 +9,22 @@ export const getCurrentPublicShareToken = () => {
   return path[path.length - 1];
 };
 
+export const publicAPIRequest = (slug, method, data = null) => {
+  return request(
+    `/apps/maps/api/1.0/public/${getCurrentPublicShareToken()}/${slug}`,
+    method,
+    data
+  );
+};
+
+export const aPIRequest = (slug, method, data = null) => {
+  return request(
+    `/apps/maps/api/1.0/${getCurrentPublicShareToken()}/${slug}`,
+    method,
+    data
+  );
+};
+
 /**
  * Perform API request
  *
@@ -19,7 +35,7 @@ export const getCurrentPublicShareToken = () => {
  * @param data : {} | null
  * @returns {Promise<{}>}
  */
-export const apiRequest = (url, method = "GET", data = null) => {
+export const request = (url, method, data) => {
   return new Promise((resolve, reject) => {
     $.ajax({
       url: OC.generateUrl(url),

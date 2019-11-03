@@ -1,10 +1,11 @@
 <template>
   <div id="maps-app">
-    <PublicFavoriteShareSideBar :favorites="store.favorites" />
+    <PublicFavoriteShareSideBar />
     <div class="content-wrapper">
       <MapContainer
         @mapLeftClick="handleMapLeftClick"
-        :favorite-categories="favoriteCategories"
+        :favorite-categories="favoritesMappedByCategory"
+        :propagate-left-click="mapPropagateLeftClick"
       />
     </div>
   </div>
@@ -14,54 +15,49 @@
 import MapContainer from "./components/MapContainer";
 import PublicFavoriteShareSideBar from "./components/PublicFavoriteShareSideBar";
 import {
-  apiRequest,
+  request,
   getCurrentPublicShareToken,
-  showNotification
+  showNotification,
+  publicAPIRequest
 } from "./utils/common";
 import { getCategoryRawName } from "./utils/mapUtils";
+import { mapActions, mapGetters, mapState } from "vuex";
+import { PUBLIC_FAVORITES_NAMESPACE } from "./store/modules/publicFavorites";
+import AppMode from "./data/enum/MapMode";
 
 export default {
   name: "App",
 
   data() {
     return {
-      // TODO: use vuex
-      store: {
-        favorites: []
-      }
+      mode: "default"
     };
   },
 
   mounted() {
-    apiRequest(
-      `/apps/maps/api/1.0/public/${getCurrentPublicShareToken()}/favorites`,
-      "GET"
-    )
-      .then(data => {
-        this.store.favorites = data;
-      })
-      .catch(() =>
-        showNotification(t("maps", "Failed to share favorites category"))
-      );
+    this.getFavorites();
   },
 
   computed: {
-    favoriteCategories() {
-      const favorites = this.store.favorites;
-
-      if (favorites.length === 0) {
-        return {};
-      }
-
-      return {
-        [getCategoryRawName(favorites[0].category)]: favorites
-      };
+    ...mapState({
+      appMode: state => state[PUBLIC_FAVORITES_NAMESPACE].appMode
+    }),
+    ...mapGetters({
+      favoritesMappedByCategory: `${PUBLIC_FAVORITES_NAMESPACE}/mappedByCategory`
+    }),
+    mapPropagateLeftClick() {
+      return this.appMode === AppMode.ADDING_FAVORITES;
     }
   },
 
   methods: {
+    ...mapActions({
+      getFavorites: `${PUBLIC_FAVORITES_NAMESPACE}/getFavorites`
+    }),
+
     handleMapLeftClick(e) {
-      console.log(e);
+      if (this.appMode === AppMode.ADDING_FAVORITES) {
+      }
     }
   },
 
