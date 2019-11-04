@@ -1,5 +1,5 @@
 import AppMode from "../../data/enum/MapMode";
-import { publicAPIRequest, showNotification } from "../../utils/common";
+import { publicApiRequest, showNotification } from "../../utils/common";
 import { getCategoryRawName } from "../../utils/mapUtils";
 
 export const PUBLIC_FAVORITES_NAMESPACE = "publicFavorites";
@@ -23,20 +23,34 @@ const getters = {
 
 const actions = {
   getFavorites({ commit }) {
-    publicAPIRequest("favorites", "GET")
+    return publicApiRequest("favorites", "GET")
       .then(data => {
         commit("setFavorites", data);
       })
-      .catch(() =>
-        showNotification(t("maps", "Failed to share favorites category"))
-      );
+      .catch(() => showNotification(t("maps", "Failed to get favorites")));
   },
-  addFavorite({}) {}
+  addFavorite({ commit }, { lat, lng, name, category }) {
+    return publicApiRequest("favorites", "POST", {
+      lat,
+      lng,
+      name,
+      category,
+      comment: "",
+      extensions: ""
+    })
+      .then(data => {
+        commit("addFavorite", data);
+      })
+      .catch(() => showNotification(t("maps", "Failed to create favorite")));
+  }
 };
 
 const mutations = {
   setFavorites(state, favorites) {
     state.favorites = favorites;
+  },
+  addFavorite(state, favorite) {
+    state.favorites.push(favorite);
   },
   setAppMode(state, mode) {
     state.appMode = mode;

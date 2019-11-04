@@ -56,7 +56,7 @@ return [
             'requirements' => ['path' => '.+']
         ],
         ['name' => 'public_favorites_api#getFavorites', 'url' => '/api/1.0/public/{token}/favorites', 'verb' => 'GET'],
-        ['name' => 'public_favorites_api#addFavorite', 'url' => '/api/1.0/public/{token}favorites/{id}', 'verb' => 'PUT'],
+        ['name' => 'public_favorites_api#addFavorite', 'url' => '/api/1.0/public/{token}/favorites', 'verb' => 'POST'],
 
         // favorites
         ['name' => 'favorites#getFavorites', 'url' => '/favorites', 'verb' => 'GET'],
@@ -86,7 +86,7 @@ return [
         ['name' => 'devices_api#getDevices', 'url' => '/api/{apiversion}/devices', 'verb' => 'GET'],
         ['name' => 'devices_api#getDevicePoints', 'url' => '/api/{apiversion}/devices/{id}', 'verb' => 'GET'],
         ['name' => 'devices_api#addDevicePoint', 'url' => '/api/{apiversion}/devices', 'verb' => 'POST'],
-        ['name' => 'devices_api#editDevice', 'url' => '/api/{apiversion}/devices/{id}', 'verb' => 'PUT'],
+        ['name' => 'devices_api#editDevice', 'url' => '/api/{apiversion}/devices/{id}', 'verbGET' => 'PUT'],
         ['name' => 'devices_api#deleteDevice', 'url' => '/api/{apiversion}/devices/{id}', 'verb' => 'DELETE'],
 
         // devices

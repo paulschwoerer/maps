@@ -26,8 +26,13 @@
         ></LMarker>
       </LMarkerCluster>
       <LFeatureGroup ref="popupLayer">
-        <LPopup :lat-lng="[0, 0]">
-          <MapClickPopup />
+        <LPopup :lat-lng="popup.coordinates">
+          <MapClickPopup
+            :isVisible="popup.visible"
+            :coordinates="popup.coordinates"
+            :addFavorite="addFavorite"
+            @close="closePopup"
+          />
         </LPopup>
       </LFeatureGroup>
     </LMap>
@@ -45,6 +50,8 @@ import MapClickPopup from "./map/MapClickPopup";
 import { LMap, LTileLayer, LMarker, LPopup, LFeatureGroup } from "vue2-leaflet";
 import LMarkerCluster from "vue2-leaflet-markercluster";
 import { latLngBounds, latLng } from "leaflet";
+import { PUBLIC_FAVORITES_NAMESPACE } from "../store/modules/publicFavorites";
+import { mapActions } from "vuex";
 
 const CLUSTER_MARKER_VIEW_SIZE = 27;
 const MAP_ID = "map-container";
@@ -53,7 +60,8 @@ export default {
   name: "MapContainer",
 
   props: {
-    favoriteCategories: VueTypes.object.isRequired
+    favoriteCategories: VueTypes.object.isRequired,
+    addFavorite: VueTypes.func.isRequired
   },
 
   created() {
@@ -73,17 +81,17 @@ export default {
   },
 
   mounted() {
-    // this.initMap();
-
-    setTimeout(() => {
-      this.$refs.popupLayer.mapObject.openPopup([0, 0]);
-    }, 1000);
+    this.$nextTick(() => {
+      this.$refs.map.mapObject.on("click", this.handleMapClick);
+    });
   },
 
   data() {
     return {
-      showPopup: false,
-      popupOpened: false,
+      popup: {
+        visible: false,
+        coordinates: [0, 0]
+      },
       mapOptions: {
         center: [0, 0],
         zoom: 2,
@@ -141,6 +149,14 @@ export default {
   },
 
   methods: {
+    handleMapClick(e) {
+      if (this.popup.visible) {
+        this.closePopup();
+      } else {
+        this.openPopup(e.latlng.lat, e.latlng.lng);
+      }
+    },
+
     createNewDivIcon(categoryKey) {
       return new L.DivIcon({
         iconAnchor: [9, 9],
@@ -170,13 +186,15 @@ export default {
     },
 
     openPopup(lat, lng) {
-      this.map.openPopup(this.$refs.popup.$el, { lat, lng });
-      this.popupOpened = true;
+      this.$refs.popupLayer.mapObject.openPopup([lat, lng]);
+      this.popup.visible = true;
+      this.popup.coordinates = [lat, lng];
     },
 
     closePopup() {
-      this.map.closePopup();
-      this.popupOpened = false;
+      this.$refs.popupLayer.mapObject.closePopup();
+      this.popup.visible = false;
+      this.popup.coordinates = [0, 0];
     },
 
     initMap() {

@@ -9,24 +9,26 @@ export const getCurrentPublicShareToken = () => {
   return path[path.length - 1];
 };
 
-export const publicAPIRequest = (slug, method, data = null) => {
+export const publicApiRequest = (slug, method, data = null) => {
   return request(
-    `/apps/maps/api/1.0/public/${getCurrentPublicShareToken()}/${slug}`,
+    OC.generateUrl(
+      `/apps/maps/api/1.0/public/${getCurrentPublicShareToken()}/${slug}`
+    ),
     method,
     data
   );
 };
 
-export const aPIRequest = (slug, method, data = null) => {
+export const apiRequest = (slug, method, data = null) => {
   return request(
-    `/apps/maps/api/1.0/${getCurrentPublicShareToken()}/${slug}`,
+    OC.generateUrl(`apps/maps/api/1.0/${getCurrentPublicShareToken()}/${slug}`),
     method,
     data
   );
 };
 
 /**
- * Perform API request
+ * Perform a network request
  *
  * TODO: Use axios or similar instead of jQuery ajax
  *
@@ -35,10 +37,10 @@ export const aPIRequest = (slug, method, data = null) => {
  * @param data : {} | null
  * @returns {Promise<{}>}
  */
-export const request = (url, method, data) => {
+export const request = (url, method, data = null) => {
   return new Promise((resolve, reject) => {
     $.ajax({
-      url: OC.generateUrl(url),
+      url: url,
       type: method,
       data,
       async: true

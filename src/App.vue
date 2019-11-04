@@ -6,6 +6,7 @@
         @mapLeftClick="handleMapLeftClick"
         :favorite-categories="favoritesMappedByCategory"
         :propagate-left-click="mapPropagateLeftClick"
+        :addFavorite="addFavorite"
       />
     </div>
   </div>
@@ -18,7 +19,7 @@ import {
   request,
   getCurrentPublicShareToken,
   showNotification,
-  publicAPIRequest
+  publicApiRequest
 } from "./utils/common";
 import { getCategoryRawName } from "./utils/mapUtils";
 import { mapActions, mapGetters, mapState } from "vuex";
@@ -52,7 +53,8 @@ export default {
 
   methods: {
     ...mapActions({
-      getFavorites: `${PUBLIC_FAVORITES_NAMESPACE}/getFavorites`
+      getFavorites: `${PUBLIC_FAVORITES_NAMESPACE}/getFavorites`,
+      addFavorite: `${PUBLIC_FAVORITES_NAMESPACE}/addFavorite`
     }),
 
     handleMapLeftClick(e) {

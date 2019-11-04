@@ -9,19 +9,19 @@ use OCA\Maps\Service\FavoritesService;
 use OCP\AppFramework\PublicShareController;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http\Template\PublicTemplateResponse;
-use Punic\Data;
 
 class PublicFavoritesApiController extends PublicShareController {
     private $favoritesService;
     private $config;
     private $qb;
+    private $userId;
 
-    public function __construct($appName, IRequest $request, ISession $session,  IConfig $config, FavoritesService $favoritesService) {
+    public function __construct($appName, IRequest $request, $userId, ISession $session,  IConfig $config, FavoritesService $favoritesService) {
         parent::__construct($appName, $request, $session);
 
         $this->config = $config;
         $this->favoritesService = $favoritesService;
+        $this->userId = $userId;
 
         $this->qb = \OC::$server->getDatabaseConnection()->getQueryBuilder();
     }
@@ -59,8 +59,15 @@ class PublicFavoritesApiController extends PublicShareController {
         return new DataResponse($favorites);
     }
 
-    public function addFavorite($lat, $lng, $name) {
-        return new DataResponse($lat . ' ' . $lng . ' ' . $name);
+    public function addFavorite($lat, $lng, $name, $category, $comment, $extensions) {
+        if (is_numeric($lat) && is_numeric($lng)) {
+            $favoriteId = $this->favoritesService->addFavoriteToDB($this->userId, $name, $lat, $lng, $category, $comment, $extensions);
+            $favorite = $this->favoritesService->getFavoriteFromDB($favoriteId);
+            return new DataResponse($favorite);
+        }
+        else {
+            return new DataResponse('invalid values', 400);
+        }
     }
 
     public function editFavorite($id) {

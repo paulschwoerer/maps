@@ -103,6 +103,7 @@ class Application extends App
             return new PublicFavoritesApiController(
                 $c->query('AppName'),
                 $c->query('Request'),
+                $c->query('UserId'),
                 $c->query('Session'),
                 $c->query('ServerContainer')->getConfig(),
                 new FavoritesService(
