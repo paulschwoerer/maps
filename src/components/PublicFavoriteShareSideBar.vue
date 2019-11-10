@@ -7,8 +7,9 @@
       />
       <AppNavigationItem
         v-for="favorite in favorites"
-        :key="favorite.name"
+        :key="favorite.id"
         :title="favorite.name"
+        @click="handleFavoriteClick(favorite.id)"
       />
       <AppNavigationSpacer />
     </ul>
@@ -25,8 +26,7 @@ import AppNavigationSettings from "@nextcloud/vue/dist/Components/AppNavigationS
 import AppNavigationItem from "@nextcloud/vue/dist/Components/AppNavigationItem";
 import AppNavigationNew from "@nextcloud/vue/dist/Components/AppNavigationNew";
 import AppNavigationSpacer from "@nextcloud/vue/dist/Components/AppNavigationSpacer";
-import VueTypes from "vue-types";
-import { mapMutations, mapState } from "vuex";
+import { mapMutations, mapState, mapActions } from "vuex";
 import { PUBLIC_FAVORITES_NAMESPACE } from "../store/modules/publicFavorites";
 import MapMode from "../data/enum/MapMode";
 import { MAP_NAMESPACE } from "../store/modules/map";
@@ -51,15 +51,23 @@ export default {
   },
 
   methods: {
+    ...mapActions({
+      selectFavorite: `${PUBLIC_FAVORITES_NAMESPACE}/selectFavorite`
+    }),
     ...mapMutations({
       setMapMode: `${MAP_NAMESPACE}/setMode`
     }),
+
     handleAddFavoriteClick() {
       if (this.mapMode === MapMode.ADDING_FAVORITES) {
         this.setMapMode(MapMode.DEFAULT);
       } else {
         this.setMapMode(MapMode.ADDING_FAVORITES);
       }
+    },
+
+    handleFavoriteClick(id) {
+      this.selectFavorite(id);
     }
   },
 

@@ -3,10 +3,12 @@
     <PublicFavoriteShareSideBar />
     <div class="content-wrapper">
       <MapContainer
-        @mapLeftClick="handleMapLeftClick"
         :favorite-categories="favoritesMappedByCategory"
         :propagate-left-click="mapPropagateLeftClick"
-        :addFavorite="addFavorite"
+        @addFavorite="addFavorite"
+        @updateFavorite="updateFavorite"
+        @deleteFavorite="deleteFavorite"
+        :is-public-share="true"
       />
     </div>
   </div>
@@ -15,13 +17,6 @@
 <script>
 import MapContainer from "./components/MapContainer";
 import PublicFavoriteShareSideBar from "./components/PublicFavoriteShareSideBar";
-import {
-  request,
-  getCurrentPublicShareToken,
-  showNotification,
-  publicApiRequest
-} from "./utils/common";
-import { getCategoryRawName } from "./utils/mapUtils";
 import { mapActions, mapGetters, mapState } from "vuex";
 import { PUBLIC_FAVORITES_NAMESPACE } from "./store/modules/publicFavorites";
 import AppMode from "./data/enum/MapMode";
@@ -40,9 +35,6 @@ export default {
   },
 
   computed: {
-    ...mapState({
-      appMode: state => state[PUBLIC_FAVORITES_NAMESPACE].appMode
-    }),
     ...mapGetters({
       favoritesMappedByCategory: `${PUBLIC_FAVORITES_NAMESPACE}/mappedByCategory`
     }),
@@ -54,13 +46,10 @@ export default {
   methods: {
     ...mapActions({
       getFavorites: `${PUBLIC_FAVORITES_NAMESPACE}/getFavorites`,
-      addFavorite: `${PUBLIC_FAVORITES_NAMESPACE}/addFavorite`
-    }),
-
-    handleMapLeftClick(e) {
-      if (this.appMode === AppMode.ADDING_FAVORITES) {
-      }
-    }
+      addFavorite: `${PUBLIC_FAVORITES_NAMESPACE}/addFavorite`,
+      updateFavorite: `${PUBLIC_FAVORITES_NAMESPACE}/updateFavorite`,
+      deleteFavorite: `${PUBLIC_FAVORITES_NAMESPACE}/deleteFavorite`
+    })
   },
 
   components: {

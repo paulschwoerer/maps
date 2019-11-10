@@ -1,14 +1,16 @@
 <template>
-  <div id="map-container">
+  <div class="map-container">
     <LMap
       :center="mapOptions.center"
-      :maxBounds="mapOptions.maxBounds"
-      :minZoom="mapOptions.minZoom"
-      :maxZoom="mapOptions.maxZoom"
+      :max-bounds="mapOptions.maxBounds"
+      :min-zoom="mapOptions.minZoom"
+      :max-zoom="mapOptions.maxZoom"
       :zoom="mapOptions.zoom"
+      @ready="onMapReady"
       ref="map"
     >
       <LTileLayer v-for="layer in layers" :key="layer.name" :url="layer.url" />
+
       <LMarkerCluster
         v-for="categoryKey in Object.keys(favoriteCategories)"
         :key="categoryKey"
@@ -20,18 +22,33 @@
       >
         <LMarker
           v-for="favorite in favoriteCategories[categoryKey]"
-          :key="`${favorite.lat}${favorite.lng}`"
+          :key="favorite.id"
           :lat-lng="[favorite.lat, favorite.lng]"
           :icon="createNewDivIcon(categoryKey)"
-        ></LMarker>
+          @popupopen="handleMarkerPopupOpened(favorite.id)"
+          @popupclose="handleMarkerPopupClosed(favorite.id)"
+          @ready="marker => handleMarkerReady(favorite.id, marker)"
+        >
+          <LPopup>
+            <FavoritePopup
+              :favorite="favorite"
+              :is-visible="openMarkerPopupId === favorite.id"
+              :allow-category-customization="!isPublicShare"
+              @deleteFavorite="handleDeleteFavorite"
+              @updateFavorite="handleUpdateFavorite"
+            />
+          </LPopup>
+        </LMarker>
       </LMarkerCluster>
-      <LFeatureGroup ref="popupLayer">
-        <LPopup :lat-lng="popup.coordinates">
-          <MapClickPopup
-            :isVisible="popup.visible"
-            :coordinates="popup.coordinates"
-            :addFavorite="addFavorite"
-            @close="closePopup"
+
+      <LFeatureGroup @ready="onFeatureGroupReady">
+        <LPopup :lat-lng="popup.latLng">
+          <MapPopup
+            :is-visible="popup.visible"
+            :lat-lng="popup.latLng"
+            @close="handlePopupCloseRequest"
+            :allow-category-customization="!isPublicShare"
+            @addFavorite="handleAddFavorite"
           />
         </LPopup>
       </LFeatureGroup>
@@ -45,59 +62,45 @@ import VueTypes from "vue-types";
 import "leaflet.markercluster";
 import "leaflet.featuregroup.subgroup";
 
-import MapClickPopup from "./map/MapClickPopup";
-
 import { LMap, LTileLayer, LMarker, LPopup, LFeatureGroup } from "vue2-leaflet";
 import LMarkerCluster from "vue2-leaflet-markercluster";
 import { latLngBounds, latLng } from "leaflet";
+import { mapActions, mapMutations, mapState } from "vuex";
+import { MAP_NAMESPACE } from "../store/modules/map";
+import MapPopup from "./map/ClickPopup";
+import FavoritePopup from "./map/FavoritePopup";
+import { isPublicShare } from "../utils/common";
 import { PUBLIC_FAVORITES_NAMESPACE } from "../store/modules/publicFavorites";
-import { mapActions } from "vuex";
 
 const CLUSTER_MARKER_VIEW_SIZE = 27;
-const MAP_ID = "map-container";
 
 export default {
   name: "MapContainer",
 
   props: {
     favoriteCategories: VueTypes.object.isRequired,
-    addFavorite: VueTypes.func.isRequired
+    isPublicShare: VueTypes.bool.isRequired
   },
 
   created() {
-    this.categoryLayers = null;
-    this.categoryIcons = null;
-
-    // this.cluster = L.markerClusterGroup({
-    //   // iconCreateFunction: this.getClusterIconCreateFunction(), // TODO
-    //   spiderfyOnMaxZoom: false,
-    //   maxClusterRadius: 28,
-    //   zoomToBoundsOnClick: false,
-    //   chunkedLoading: true,
-    //   icon: {
-    //     iconSize: [CLUSTER_MARKER_VIEW_SIZE, CLUSTER_MARKER_VIEW_SIZE]
-    //   }
-    // });
-  },
-
-  mounted() {
-    this.$nextTick(() => {
-      this.$refs.map.mapObject.on("click", this.handleMapClick);
-    });
+    this.featureGroup = null;
+    this.popupWasJustClosed = false;
+    this.markerMap = [];
   },
 
   data() {
     return {
+      openMarkerPopupId: null,
       popup: {
         visible: false,
-        coordinates: [0, 0]
+        latLng: { lat: 0, lng: 0 }
       },
       mapOptions: {
         center: [0, 0],
         zoom: 2,
         minZoom: 2,
         maxZoom: 19,
-        bounds: latLngBounds([
+        initialBounds: latLngBounds([
           [40.70081290280357, -74.26963806152345],
           [40.82991732677597, -74.08716201782228]
         ]),
@@ -115,46 +118,89 @@ export default {
   },
 
   watch: {
-    /*favoriteCategories() {
-      if (this.map) {
-        const layers = {};
-        const icons = {};
+    selectedFavoriteId(val) {
+      if (val !== null) {
+        const marker = this.markerMap[val];
 
-        for (const categoryKey of Object.keys(this.favoriteCategories)) {
-          icons[categoryKey] = L.divIcon({
-            iconAnchor: [9, 9],
-            className: "leaflet-marker-favorite",
-            html:
-              '<div class="favoriteMarker ' +
-              categoryKey +
-              'CategoryMarker"></div>'
-          });
-
-          const markers = this.favoriteCategories[categoryKey].map(favorite => {
-            return L.marker(L.latLng(favorite.lat, favorite.lng), {
-              icon: icons[categoryKey]
-            });
-          });
-
-          layers[categoryKey] = L.featureGroup.subGroup(this.cluster, markers);
-          layers[categoryKey].addTo(this.map);
+        if (marker) {
+          marker.openPopup();
+        } else {
+          console.warn(
+            "[MapContainer] Cannot find marker for favorite id: ",
+            val
+          );
         }
-
-        this.cluster.addTo(this.map);
-
-        this.categoryLayers = layers;
-        this.categoryIcons = icons;
       }
-    }*/
+    }
+  },
+
+  computed: {
+    // TODO: clean
+    ...mapState({
+      selectedFavoriteId: state =>
+        isPublicShare()
+          ? state[PUBLIC_FAVORITES_NAMESPACE].selectedFavoriteId
+          : null,
+      selectedFavorite: state =>
+        isPublicShare()
+          ? state[PUBLIC_FAVORITES_NAMESPACE].favorites.find(
+              favorite =>
+                favorite.id ===
+                state[PUBLIC_FAVORITES_NAMESPACE].selectedFavoriteId
+            )
+          : null
+    })
   },
 
   methods: {
+    handleMarkerReady(favoriteId, marker) {
+      this.markerMap[favoriteId] = marker;
+    },
+
+    handleAddFavorite(data) {
+      this.$emit("addFavorite", data);
+    },
+
+    handleUpdateFavorite(data) {
+      this.$emit("updateFavorite", data);
+    },
+
+    handleDeleteFavorite(data) {
+      this.$emit("deleteFavorite", data);
+    },
+
+    handleMarkerPopupOpened(id) {
+      this.openMarkerPopupId = id;
+    },
+
+    handleMarkerPopupClosed(id) {
+      this.openMarkerPopupId = null;
+    },
+
+    openPopup(lat, lng) {
+      this.popup.visible = true;
+      this.popup.latLng = { lat, lng };
+      this.featureGroup.openPopup([lat, lng]);
+    },
+
+    closePopup() {
+      this.resetPopupState();
+      this.featureGroup.closePopup();
+    },
+
+    resetPopupState() {
+      this.popup.visible = false;
+      this.popup.latLng = { lat: 0, lng: 0 };
+    },
+
     handleMapClick(e) {
-      if (this.popup.visible) {
-        this.closePopup();
-      } else {
+      if (!this.popup.visible && !this.popupWasJustClosed) {
         this.openPopup(e.latlng.lat, e.latlng.lng);
       }
+    },
+
+    handlePopupCloseRequest() {
+      this.closePopup();
     },
 
     createNewDivIcon(categoryKey) {
@@ -185,184 +231,44 @@ export default {
       };
     },
 
-    openPopup(lat, lng) {
-      this.$refs.popupLayer.mapObject.openPopup([lat, lng]);
-      this.popup.visible = true;
-      this.popup.coordinates = [lat, lng];
+    handlePopupOpenEvent() {},
+
+    handlePopupCloseEvent() {
+      this.popupWasJustClosed = true;
+      this.resetPopupState();
+
+      this.$nextTick(() => {
+        this.popupWasJustClosed = false;
+      });
     },
 
-    closePopup() {
-      this.$refs.popupLayer.mapObject.closePopup();
-      this.popup.visible = false;
-      this.popup.coordinates = [0, 0];
+    onMapReady(map) {
+      map.on("click", this.handleMapClick);
     },
 
-    initMap() {
-      const starImageUrl = OC.generateUrl(
-        "/svg/core/actions/star-dark?color=000000"
-      );
-      const markerRedImageUrl = OC.generateUrl(
-        "/svg/core/actions/address?color=EE3333"
-      );
-      const markerBlueImageUrl = OC.generateUrl(
-        "/svg/core/actions/address?color=3333EE"
-      );
-      const markerGreenImageUrl = OC.generateUrl(
-        "/svg/core/actions/address?color=33EE33"
-      );
-      const photoImageUrl = OC.generateUrl(
-        "/svg/core/places/picture?color=000000"
-      );
-      const contactImageUrl = OC.generateUrl(
-        "/svg/core/actions/user?color=000000"
-      );
-      const shareImageUrl = OC.generateUrl(
-        "/svg/core/actions/share?color=000000"
-      );
+    onFeatureGroupReady(featureGroup) {
+      featureGroup.on("popupopen", this.handlePopupOpenEvent);
+      featureGroup.on("popupclose", this.handlePopupCloseEvent);
 
-      this.map = L.map(MAP_ID, {
-        zoom: 2,
-        zoomControl: false,
-        maxZoom: 19,
-        minZoom: 2,
-        center: new L.LatLng(0, 0),
-        closePopupOnClick: true,
-        maxBounds: new L.LatLngBounds(
-          new L.LatLng(-90, 720),
-          new L.LatLng(90, -720)
-        ),
-        layers: [],
-        // right click menu
-        contextmenu: false,
-        contextmenuWidth: 160,
-        contextmenuItems: [
-          {
-            text: t("maps", "Add a favorite"),
-            icon: starImageUrl,
-            callback: this.$emit("addFavorite")
-          },
-          /*{
-            text: t("maps", "Place photos"),
-            icon: photoImageUrl,
-            callback: this.$emit("placePhotos")
-            //}, {
-            //    text: t('maps', 'Place photo folder'),
-            //    icon: photoImageUrl,
-            //    callback: photosController.contextPlacePhotoFolder
-          },
-          {
-            text: t("maps", "Place contact"),
-            icon: contactImageUrl,
-            callback: this.$emit("placeContact")
-          },
-          {
-            text: t("maps", "Share this location"),
-            icon: shareImageUrl,
-            callback: this.$emit("shareLocation")
-          },*/
-          "-"
-          /*{
-            text: t("maps", "Route from here"),
-            icon: markerGreenImageUrl,
-            callback: this.$emit("routeFrom")
-          },
-          {
-            text: t("maps", "Add route point"),
-            icon: markerBlueImageUrl,
-            callback: this.$emit("routePoint")
-          },
-          {
-            text: t("maps", "Route to here"),
-            icon: markerRedImageUrl,
-            callback: this.$emit("routeTo")
-          }*/
-        ]
-      });
-
-      /*this.map.on("contextmenu", e => {
-        if ($(e.originalEvent.target).attr("id") === MAP_ID) {
-          this.openPopup(e.latlng.lat, e.latlng.lng);
-        }
-      });*/
-
-      this.map.on("click", e => {
-        if ($(e.originalEvent.target).attr("id") === MAP_ID) {
-          this.openPopup(e.latlng.lat, e.latlng.lng);
-        }
-      });
-
-      const osm = L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-          attribution:
-            '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
-          noWrap: false,
-          detectRetina: false,
-          maxZoom: 19
-        }
-      );
-
-      const roadsOverlay = L.tileLayer(
-        "https://{s}.tile.openstreetmap.se/hydda/roads_and_labels/{z}/{x}/{y}.png",
-        {
-          maxZoom: 18,
-          opacity: 0.7,
-          attribution:
-            '<a href="http://openstreetmap.se/" target="_blank">OpenStreetMap Sweden</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }
-      );
-
-      // tile layer selector
-      const baseLayers = {
-        OpenStreetMap: osm
-        // "ESRI Aerial": ESRIAerial,
-        // "ESRI Topo": ESRITopo,
-        // OpenTopoMap: openTopo,
-        // Dark: dark,
-        // Watercolor: watercolor
-      };
-      const baseOverlays = {
-        "Roads and labels": roadsOverlay
-      };
-      const controlLayers = L.control
-        .layers(baseLayers, baseOverlays, {
-          position: "bottomright",
-          collapsed: false
-        })
-        .addTo(this.map);
-
-      const locale = OC.getLocale();
-      const imperial =
-        locale === "en_US" ||
-        locale === "en_GB" ||
-        locale === "en_AU" ||
-        locale === "en_IE" ||
-        locale === "en_NZ" ||
-        locale === "en_CA";
-      const metric = !imperial;
-
-      L.control
-        .scale({ metric: metric, imperial: imperial, position: "bottomleft" })
-        .addTo(this.map);
-
-      L.control.zoom({ position: "bottomright" }).addTo(this.map);
+      this.featureGroup = featureGroup;
     }
   },
 
   components: {
-    MapClickPopup,
+    MapPopup,
     LMap,
     LFeatureGroup,
     LMarker,
     LMarkerCluster,
     LTileLayer,
-    LPopup
+    LPopup,
+    FavoritePopup
   }
 };
 </script>
 
 <style lang="scss">
-#map-container {
+.map-container {
   position: relative;
   height: 100%;
   width: 100%;
@@ -458,6 +364,14 @@ export default {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 50vw;
+  }
+
+  /* Increase padding of popup close button */
+  .leaflet-popup {
+    .leaflet-popup-close-button {
+      top: 9px;
+      right: 9px;
+    }
   }
 }
 </style>

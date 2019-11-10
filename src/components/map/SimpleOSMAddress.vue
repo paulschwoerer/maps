@@ -1,12 +1,15 @@
 <template>
   <div class="osm-address">
-    <textarea
+    <div class="osm-address-text">
+      <p v-html="textContents"></p>
+    </div>
+    <!--<textarea
       :value="textContents"
       @input="$emit('input', $event.target.value)"
       class="osm-address-text"
-      cols="30"
-      rows="10"
-    ></textarea>
+      rows="6"
+    ></textarea>-->
+    <div class="loading" :class="{ visible: loading }"></div>
   </div>
 </template>
 
@@ -35,12 +38,26 @@ export default {
       lon: VueTypes.string,
       osm_id: VueTypes.number,
       osm_type: VueTypes.string,
-      place_id: VueTypes.number
-    }).loose.isRequired
+      place_id: VueTypes.number,
+
+      error: VueTypes.string
+    }).loose
   },
 
   computed: {
+    loading() {
+      return this.geocodeObject === null;
+    },
+
     textContents() {
+      if (!this.geocodeObject) {
+        return "";
+      }
+
+      if (typeof this.geocodeObject.error !== "undefined") {
+        return t("maps", "Unknown Place");
+      }
+
       const {
         address: {
           country,
@@ -55,27 +72,36 @@ export default {
         }
       } = this.geocodeObject;
 
+      const lineFeed = "<br />";
       let address = "";
 
       if (road) {
-        address += `${road} ${house_number || ""}\n`;
+        address += `${road} ${house_number || ""}${lineFeed}`;
       } else if (pedestrian) {
-        address += `${pedestrian} ${house_number || ""}\n`;
+        address += `${pedestrian} ${house_number || ""}${lineFeed}`;
       }
 
       if (city) {
-        address += `${postcode ? postcode + " " : ""}${city}\n`;
+        address += `${postcode ? postcode + " " : ""}${city}${lineFeed}`;
+      } else if (village) {
+        address += `${postcode ? postcode + " " : ""}${village}${lineFeed}`;
       }
 
       if (county) {
-        address += `${county}\n`;
+        address += `${county}${lineFeed}`;
       }
 
       if (state) {
-        address += `${state}\n`;
+        address += `${state}${lineFeed}`;
       }
 
-      address += country;
+      if (country) {
+        address += country;
+      }
+
+      if (address.length === 0) {
+        return t("maps", "Unknown Place");
+      }
 
       return address;
     }
@@ -84,14 +110,38 @@ export default {
 </script>
 
 <style scoped lang="scss">
+$transitionDuration: 0.3s;
+
 .osm-address {
+  position: relative;
   width: 100%;
 
   .osm-address-text {
     width: 100%;
-    max-width: 100%;
-    min-width: 100%;
-    border: 1px solid rgba(#000, 0.05);
+    min-height: 8em;
+    /*border: 1px solid rgba(#000, 0.05);*/
+    /*resize: vertical;*/
+  }
+
+  .loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity $transitionDuration, visibility 0s $transitionDuration;
+    background: #fff;
+
+    &.visible {
+      opacity: 1;
+      visibility: visible;
+      transition: none;
+    }
   }
 }
 </style>

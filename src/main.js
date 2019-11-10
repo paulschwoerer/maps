@@ -10,6 +10,10 @@ Vue.prototype.n = window.n;
 Vue.prototype.OC = window.OC;
 Vue.prototype.OCA = window.OCA;
 
+if (process && process.env.NODE_ENV === "development") {
+  Vue.config.devtools = true;
+}
+
 // this part resolve an issue where the markers would not appear
 delete Icon.Default.prototype._getIconUrl;
 

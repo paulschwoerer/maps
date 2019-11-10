@@ -70,12 +70,36 @@ class PublicFavoritesApiController extends PublicShareController {
         }
     }
 
-    public function editFavorite($id) {
+    public function editFavorite($id, $lat, $lng, $name, $comment, $extensions) {
+        $favorite = $this->favoritesService->getFavoriteFromDB($id, $this->userId);
 
+        if ($favorite !== null) {
+            if (($lat === null || is_numeric($lat)) &&
+                ($lng === null || is_numeric($lng))
+            ) {
+                $this->favoritesService->editFavoriteInDB($id, $name, $lat, $lng, $favorite['category'], $comment, $extensions);
+                $editedFavorite = $this->favoritesService->getFavoriteFromDB($id);
+
+                return new DataResponse($editedFavorite);
+            }
+            else {
+                return new DataResponse('invalid values', 400);
+            }
+        }
+        else {
+            return new DataResponse('no such favorite', 400);
+        }
     }
 
     public function deleteFavorite($id) {
-
+        $favorite = $this->favoritesService->getFavoriteFromDB($id, $this->userId);
+        if ($favorite !== null) {
+            $this->favoritesService->deleteFavoriteFromDB($id);
+            return new DataResponse('deleted');
+        }
+        else {
+            return new DataResponse('no such favorite', 400);
+        }
     }
 
     private function addCsp($response) {

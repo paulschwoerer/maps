@@ -57,6 +57,8 @@ return [
         ],
         ['name' => 'public_favorites_api#getFavorites', 'url' => '/api/1.0/public/{token}/favorites', 'verb' => 'GET'],
         ['name' => 'public_favorites_api#addFavorite', 'url' => '/api/1.0/public/{token}/favorites', 'verb' => 'POST'],
+        ['name' => 'public_favorites_api#editFavorite', 'url' => '/api/1.0/public/{token}/favorites/{id}', 'verb' => 'PUT'],
+        ['name' => 'public_favorites_api#deleteFavorite', 'url' => '/api/1.0/public/{token}/favorites/{id}', 'verb' => 'DELETE'],
 
         // favorites
         ['name' => 'favorites#getFavorites', 'url' => '/favorites', 'verb' => 'GET'],

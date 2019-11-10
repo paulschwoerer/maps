@@ -41,7 +41,7 @@ export const request = (url, method, data = null) => {
   return new Promise((resolve, reject) => {
     $.ajax({
       url: url,
-      type: method,
+      type: method.toUpperCase(),
       data,
       async: true
     })

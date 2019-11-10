@@ -1,12 +1,12 @@
-import AppMode from "../../data/enum/MapMode";
 import { publicApiRequest, showNotification } from "../../utils/common";
 import { getCategoryRawName } from "../../utils/mapUtils";
+import { getPublicShareCategory } from "../../utils/publicShareUtils";
 
 export const PUBLIC_FAVORITES_NAMESPACE = "publicFavorites";
 
 const state = {
   favorites: [],
-  appMode: AppMode.DEFAULT
+  selectedFavoriteId: null
 };
 
 const getters = {
@@ -22,6 +22,9 @@ const getters = {
 };
 
 const actions = {
+  selectFavorite({ commit }, favoriteId) {
+    commit("setSelectedFavoriteId", favoriteId);
+  },
   getFavorites({ commit }) {
     return publicApiRequest("favorites", "GET")
       .then(data => {
@@ -29,19 +32,45 @@ const actions = {
       })
       .catch(() => showNotification(t("maps", "Failed to get favorites")));
   },
-  addFavorite({ commit }, { lat, lng, name, category }) {
+  addFavorite({ commit }, { lat, lng, name, comment }) {
     return publicApiRequest("favorites", "POST", {
       lat,
       lng,
       name,
-      category,
+      category: getPublicShareCategory(),
+      comment,
+      extensions: "" // TODO:
+    })
+      .then(data => {
+        commit("addFavorite", data);
+      })
+      .catch(() => showNotification(t("maps", "Failed to create favorite")));
+  },
+  updateFavorite({ commit }, { id, name, comment }) {
+    return publicApiRequest(`favorites/${id}`, "PUT", {
+      name,
+      category: getPublicShareCategory(),
+      comment,
+      extensions: "" // TODO:
+    })
+      .then(data => {
+        commit("addFavorite", data);
+      })
+      .catch(() => showNotification(t("maps", "Failed to update favorite")));
+  },
+  deleteFavorite({ commit }, { lat, lng, name }) {
+    return publicApiRequest("favorites", "POST", {
+      lat,
+      lng,
+      name,
+      category: getPublicShareCategory(),
       comment: "",
       extensions: ""
     })
       .then(data => {
         commit("addFavorite", data);
       })
-      .catch(() => showNotification(t("maps", "Failed to create favorite")));
+      .catch(() => showNotification(t("maps", "Failed to delete favorite")));
   }
 };
 
@@ -50,10 +79,18 @@ const mutations = {
     state.favorites = favorites;
   },
   addFavorite(state, favorite) {
-    state.favorites.push(favorite);
+    state.favorites = [...state.favorites, favorite];
   },
-  setAppMode(state, mode) {
-    state.appMode = mode;
+  editFavorite(state, favorite) {
+    state.favorites = state.favorites.map(el =>
+      el.id === favorite.id ? favorite : el
+    );
+  },
+  deleteFavorite(state, id) {
+    state.favorites = state.favorites.filter(el => el.id !== id);
+  },
+  setSelectedFavoriteId(state, favoriteId) {
+    state.selectedFavoriteId = favoriteId;
   }
 };
 
