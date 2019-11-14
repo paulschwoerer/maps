@@ -33,6 +33,7 @@ use OCP\Share;
 use OCP\IDateTimeZone;
 
 use OCA\Maps\Service\FavoritesService;
+use Punic\Data;
 
 //use function OCA\Maps\Service\endswith;
 
@@ -125,18 +126,13 @@ class FavoritesController extends Controller {
         }
     }
 
-    public function shareCategory($id, $user) {
-        if ($user === $this->userId) {
-            return new DataResponse('Cannot share to yourself.', 400);
+    public function shareCategory($category) {
+        // TODO: use better way to check if user owns category
+        if ($this->favoritesService->countFavorites($this->userId, [$category], null, null) === 0) {
+            return new DataResponse("Category does not exist", 400);
         }
 
-        $response = $this->favoritesService->shareCategory($id, $this->userId, $user);
-
-        return new PublicTemplateResponse($response, 400);
-    }
-
-    public function getCategoryShareLink($id) {
-        $response = $this->favoritesService->getCategoryShareLink($id, $this->userId);
+        $response = $this->favoritesService->getCategoryShareLink($category, $this->userId);
 
         return new DataResponse($response);
     }

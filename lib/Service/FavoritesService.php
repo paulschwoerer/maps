@@ -362,32 +362,17 @@ class FavoritesService
         $qb = $qb->resetQueryParts();
     }
 
-    public function shareCategory($category, $owner, $toUser) {
-        $qb = $this->qb;
-
-        // TODO: check if user owns category
-
-        $qb->insert('maps_favorite_shares')->values([
-            'owner' => $qb->createNamedParameter($owner, IQueryBuilder::PARAM_STR),
-            'toUser' => $qb->createNamedParameter($toUser, IQueryBuilder::PARAM_STR),
-            'category' => $qb->createNamedParameter($category, IQueryBuilder::PARAM_STR),
-        ]);
-        $qb->execute();
-    }
-
-    public function getCategoryShareLink($categoryId, $userId)
+    public function getCategoryShareLink($category, $owner)
     {
         $qb = $this->qb;
 
         $qb->select('token')->from('maps_favorite_shares')
             ->where(
-                $qb->expr()->eq('category_id', $qb->createNamedParameter($categoryId, IQueryBuilder::PARAM_STR))
+                $qb->expr()->eq('category', $qb->createNamedParameter($category, IQueryBuilder::PARAM_STR))
             )->andWhere(
-                $qb->expr()->eq('user_id', $qb->createNamedParameter($userId, IQueryBuilder::PARAM_INT))
+                $qb->expr()->eq('owner', $qb->createNamedParameter($owner, IQueryBuilder::PARAM_INT))
             );
         $req = $qb->execute();
-
-        $token = '';
 
         $row = $req->fetch();
 
@@ -400,8 +385,8 @@ class FavoritesService
             $qb = $qb->resetQueryParts();
 
             $qb->insert('maps_favorite_shares')->values([
-                'category_id' => $qb->createNamedParameter($categoryId, IQueryBuilder::PARAM_STR),
-                'user_id' => $qb->createNamedParameter($userId, IQueryBuilder::PARAM_STR),
+                'category' => $qb->createNamedParameter($category, IQueryBuilder::PARAM_STR),
+                'owner' => $qb->createNamedParameter($owner, IQueryBuilder::PARAM_STR),
                 'token' => $qb->createNamedParameter($token, IQueryBuilder::PARAM_STR),
             ]);
             $qb->execute();

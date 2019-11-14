@@ -125,46 +125,32 @@ FavoritesController.prototype = {
             }
         });
 
-        $('body').on('submit', '.category-sharing-form', function(e) {
-            e.preventDefault();
+        $('body').on('change', '.category-sharing-checkbox', function(e) {
+            var category = $(this).parent().parent().parent().attr('category');
 
-            var category = $(this).parent().parent().attr('category');
-            var testUser = this.querySelector('input').value;
+            var shareDialogue = $(this).parent().parent();
 
-            var url = OC.generateUrl('/apps/maps/favorites-category/' + category + '/share');
-            $.ajax({
-                type: 'POST',
-                url: url,
-                data: {
-                    user: testUser
-                },
-                async: true
-            }).done(function (response) {
-                console.log(response)
-            }).always(function (response) {
+            if (!this.checked) {
+                // TODO: unshare category
+                OC.Notification.showTemporary(t('maps', 'Unsharing not yet supported'));
+            } else {
+                var url = OC.generateUrl('/apps/maps/favorites-category/' + category + '/share');
+                $.ajax({
+                    type: 'POST',
+                    url: url,
+                    data: {},
+                    async: true
+                }).done(function (response) {
+                    const linkEl = shareDialogue.children('.category-sharing-link');
 
-            }).fail(function() {
-                OC.Notification.showTemporary(t('maps', 'Failed to share favorites category'));
-            });
-        });
+                    linkEl.val(OC.generateUrl('/apps/maps/s/favorites/' + response.token));
+                    linkEl.addClass('visible');
+                }).always(function () {
 
-        $('body').on('click', '.category-sharing-checkbox', function(e) {
-            var category = $(this).parent().parent().attr('category');
-
-
-            var url = OC.generateUrl('/apps/maps/favorites-category/' + category + '/get-share-link');
-            $.ajax({
-                type: 'POST',
-                url: url,
-                data: {},
-                async: true
-            }).done(function (response) {
-                console.log(response)
-            }).always(function (response) {
-
-            }).fail(function() {
-                OC.Notification.showTemporary(t('maps', 'Failed to share favorites category'));
-            });
+                }).fail(function() {
+                    OC.Notification.showTemporary(t('maps', 'Failed to share favorites category'));
+                });
+            }
         });
         // cancel favorite edition
         $('body').on('click', '.canceleditfavorite', function(e) {
@@ -586,9 +572,11 @@ FavoritesController.prototype = {
             '        </div>' +
             '    </div>' +
             '    <div class="category-sharing-dialogue">' +
-            '        <form method="post" action="#" class="category-sharing-form">' +
-            '            <input type="text" value="test">' +
-            '        </form>' +
+            '        <label class="category-sharing-checkbox-container">' +
+            '            <input type="checkbox" class="category-sharing-checkbox" value="shared">' +
+            '            <span>' + t('maps', 'Share this category by public link') + '</span>' +
+            '        </label> ' +
+            '        <input class="category-sharing-link">' +
             '    </div>' +
             '</li>';
 

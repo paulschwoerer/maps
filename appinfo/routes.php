@@ -67,8 +67,7 @@ return [
         ['name' => 'favorites#deleteFavorite', 'url' => '/favorites/{id}', 'verb' => 'DELETE'],
         ['name' => 'favorites#deleteFavorites', 'url' => '/favorites', 'verb' => 'DELETE'],
         ['name' => 'favorites#renameCategories', 'url' => '/favorites-category', 'verb' => 'PUT'],
-        ['name' => 'favorites#getCategoryShareLink', 'url' => '/favorites-category/{id}/get-share-link', 'verb' => 'POST'],
-        ['name' => 'favorites#shareCategory', 'url' => '/favorites-category/{id}/share', 'verb' => 'POST'],
+        ['name' => 'favorites#shareCategory', 'url' => '/favorites-category/{category}/share', 'verb' => 'POST'],
 
         ['name' => 'favorites#exportFavorites', 'url' => '/export/favorites', 'verb' => 'POST'],
         ['name' => 'favorites#importFavorites', 'url' => '/import/favorites', 'verb' => 'POST'],
