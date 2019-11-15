@@ -93,6 +93,15 @@ class FavoritesController extends Controller {
     /**
      * @NoAdminRequired
      */
+    public function getSharedCategories() {
+        $categories = $this->favoritesService->getSharedCategories($this->userId);
+
+        return new DataResponse($categories);
+    }
+
+    /**
+     * @NoAdminRequired
+     */
     public function addFavorite($name, $lat, $lng, $category, $comment, $extensions) {
         if (is_numeric($lat) && is_numeric($lng)) {
             $favoriteId = $this->favoritesService->addFavoriteToDB($this->userId, $name, $lat, $lng, $category, $comment, $extensions);

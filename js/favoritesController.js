@@ -451,34 +451,56 @@ FavoritesController.prototype = {
     getFavorites: function() {
         var that = this;
         $('#navigation-favorites').addClass('icon-loading-small');
-        var req = {};
-        var url = OC.generateUrl('/apps/maps/favorites');
-        $.ajax({
+
+        var favorites = [];
+        var sharedCategories = [];
+
+        $.when(
+            $.ajax({
+            url: OC.generateUrl('/apps/maps/favorites'),
+            data: {},
             type: 'GET',
-            url: url,
-            data: req,
-            async: true
-        }).done(function (response) {
-            var fav, marker, cat, color;
-            for (var i=0; i < response.length; i++) {
-                fav = response[i];
-                that.addFavoriteMap(fav);
+            async: true,
+            success: function(response) {
+                favorites = response;
+            },
+            fail: function(response) {
+                OC.Notification.showTemporary(t('maps', 'Failed to load favorites'));
             }
+        }), $.ajax({
+            url: OC.generateUrl('/apps/maps/favorites-category/shared-categories'),
+            data: {},
+            type: 'GET',
+            async: true,
+            success: function(response) {
+                for (var i = 0; i < response.length; i++) {
+                    sharedCategories[response[i].category] = response[i].token;
+                }
+            },
+            fail: function(response) {
+                OC.Notification.showTemporary(t('maps', 'Failed to load favorite share token'));
+            }
+        })
+        ).then(function() {
+            for (var i=0; i < favorites.length; i++) {
+                var token = sharedCategories[favorites[i].category] || null;
+
+                that.addFavoriteMap(favorites[i], true, false, token);
+            }
+
             that.updateCategoryCounters();
             that.favoritesLoaded = true;
             that.updateTimeFilterRange();
             that.timeFilterController.setSliderToMaxInterval();
-        }).always(function (response) {
+
             $('#navigation-favorites').removeClass('icon-loading-small');
-        }).fail(function() {
-            OC.Notification.showTemporary(t('maps', 'Failed to load favorites'));
         });
     },
 
     // add category in side menu
     // add layer
     // set color and icon
-    addCategory: function(rawName, enable=false) {
+    addCategory: function(rawName, enable=false, shareToken = null) {
         var name = rawName.replace(' ', '-');
 
         // color
@@ -573,10 +595,10 @@ FavoritesController.prototype = {
             '    </div>' +
             '    <div class="category-sharing-dialogue">' +
             '        <label class="category-sharing-checkbox-container">' +
-            '            <input type="checkbox" class="category-sharing-checkbox" value="shared">' +
+            '            <input type="checkbox" class="category-sharing-checkbox" ' + (shareToken ? "checked" : "") + '>' +
             '            <span>' + t('maps', 'Share this category by public link') + '</span>' +
             '        </label> ' +
-            '        <input class="category-sharing-link">' +
+            '        <input class="category-sharing-link ' + (shareToken ? "visible" : "") + '" value="' + (OC.generateUrl("/apps/maps/s/favorites/" + shareToken) || "") + '">' +
             '    </div>' +
             '</li>';
 
@@ -783,11 +805,11 @@ FavoritesController.prototype = {
     },
 
     // add a marker to the corresponding layer
-    addFavoriteMap: function(fav, enableCategory=false, fromUserAction=false) {
+    addFavoriteMap: function(fav, enableCategory=false, fromUserAction=false, shareToken = null) {
         // manage category first
         cat = fav.category;
         if (!this.categoryLayers.hasOwnProperty(cat)) {
-            this.addCategory(cat, enableCategory);
+            this.addCategory(cat, enableCategory, shareToken);
             if (enableCategory) {
                 this.saveEnabledCategories();
             }

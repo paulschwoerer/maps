@@ -154,6 +154,30 @@ class FavoritesService
         return $favorites;
     }
 
+    public function getSharedCategories($owner) {
+        $sharedCategories = [];
+
+        $qb = $this->qb;
+        $qb->select('category', 'token')
+            ->from('maps_favorite_shares')
+            ->where(
+                $qb->expr()->eq('owner',  $qb->createNamedParameter($owner, IQueryBuilder::PARAM_STR))
+            );
+        $req = $qb->execute();
+
+        while ($row = $req->fetch()) {
+            array_push($sharedCategories, [
+                'category' => $row['category'],
+                'token' => $row['token']
+            ]);
+        }
+
+        $req->closeCursor();
+        $qb->resetQueryParts();
+
+        return $sharedCategories;
+    }
+
     /**
      * @param string $userId
      * @param int $pruneBefore

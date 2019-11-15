@@ -67,6 +67,7 @@ return [
         ['name' => 'favorites#deleteFavorite', 'url' => '/favorites/{id}', 'verb' => 'DELETE'],
         ['name' => 'favorites#deleteFavorites', 'url' => '/favorites', 'verb' => 'DELETE'],
         ['name' => 'favorites#renameCategories', 'url' => '/favorites-category', 'verb' => 'PUT'],
+        ['name' => 'favorites#getSharedCategories', 'url' => '/favorites-category/shared-categories', 'verb' => 'GET'],
         ['name' => 'favorites#shareCategory', 'url' => '/favorites-category/{category}/share', 'verb' => 'POST'],
 
         ['name' => 'favorites#exportFavorites', 'url' => '/export/favorites', 'verb' => 'POST'],
