@@ -123,6 +123,7 @@ export default {
         const marker = this.markerMap[val];
 
         if (marker) {
+          this.setMapView(marker.getLatLng(), 10);
           marker.openPopup();
         } else {
           console.warn(
@@ -153,6 +154,14 @@ export default {
   },
 
   methods: {
+    ...mapActions({
+      selectFavorite: `${PUBLIC_FAVORITES_NAMESPACE}/selectFavorite`
+    }),
+
+    setMapView(latLng, zoom) {
+      this.$refs.map.mapObject.setView(latLng, zoom);
+    },
+
     handleMarkerReady(favoriteId, marker) {
       this.markerMap[favoriteId] = marker;
     },
@@ -175,6 +184,8 @@ export default {
 
     handleMarkerPopupClosed(id) {
       this.openMarkerPopupId = null;
+
+      this.selectFavorite(null);
     },
 
     openPopup(lat, lng) {
