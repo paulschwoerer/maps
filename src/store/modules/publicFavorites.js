@@ -54,7 +54,7 @@ const actions = {
       extensions: "" // TODO:
     })
       .then(data => {
-        commit("addFavorite", data);
+        commit("editFavorite", data);
       })
       .catch(() => showNotification(t("maps", "Failed to update favorite")));
   },
