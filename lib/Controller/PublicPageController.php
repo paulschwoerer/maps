@@ -45,8 +45,7 @@ class PublicPageController extends PublicShareController
      * @PublicPage
      * @NoCSRFRequired
      */
-    public function sharedFavoritesCategory($token)
-    {
+    public function sharedFavoritesCategory($token) {
         if ($token === '') {
             return new DataResponse([], Http::STATUS_BAD_REQUEST);
         }
@@ -76,8 +75,7 @@ class PublicPageController extends PublicShareController
      *
      * @since 14.0.0
      */
-    protected function getPasswordHash(): string
-    {
+    protected function getPasswordHash(): string {
         return ""; // TODO:
     }
 
@@ -88,9 +86,8 @@ class PublicPageController extends PublicShareController
      *
      * @since 14.0.0
      */
-    public function isValidToken(): bool
-    {
-        return $this->favoritesService->isValidToken($this->getToken());
+    public function isValidToken(): bool {
+        return $this->favoritesService->getFavoritesShare($this->getToken()) !== null;
     }
 
     /**
@@ -98,9 +95,8 @@ class PublicPageController extends PublicShareController
      *
      * @since 14.0.0
      */
-    protected function isPasswordProtected(): bool
-    {
-        return false;
+    protected function isPasswordProtected(): bool {
+        return false; // TODO
     }
 
     private function addCsp($response)

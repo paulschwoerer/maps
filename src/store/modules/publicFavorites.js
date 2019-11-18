@@ -58,17 +58,10 @@ const actions = {
       })
       .catch(() => showNotification(t("maps", "Failed to update favorite")));
   },
-  deleteFavorite({ commit }, { lat, lng, name }) {
-    return publicApiRequest("favorites", "POST", {
-      lat,
-      lng,
-      name,
-      category: getPublicShareCategory(),
-      comment: "",
-      extensions: ""
-    })
-      .then(data => {
-        commit("addFavorite", data);
+  deleteFavorite({ commit }, { id }) {
+    return publicApiRequest(`favorites/${id}`, "DELETE")
+      .then(() => {
+        commit("deleteFavorite", id);
       })
       .catch(() => showNotification(t("maps", "Failed to delete favorite")));
   }

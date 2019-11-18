@@ -52,26 +52,6 @@ class FavoritesService
         return $this->dbconnection->quote($str);
     }
 
-    /**
-     * Check if a given token is valid.
-     *
-     * @param $token
-     * @return bool
-     */
-    public function isValidToken($token) {
-        $qb = $this->qb;
-
-        $qb->select("id")
-            ->from("maps_favorite_shares")
-            ->where(
-                $qb->expr()->eq('token', $qb->createNamedParameter($token, IQueryBuilder::PARAM_STR))
-            );
-
-        $req = $qb->execute();
-
-        return $req->rowCount() > 0;
-    }
-
     public function getFavoritesShare($token) {
         $qb = $this->qb;
 
@@ -89,10 +69,14 @@ class FavoritesService
             return null;
         }
 
-        return [
+        $response = [
             'owner' => $row['owner'],
             'category' => $row['category']
         ];
+
+        $qb->resetQueryParts();
+
+        return $response;
     }
 
     /**
@@ -226,7 +210,7 @@ class FavoritesService
         return $favorites;
     }
 
-    public function getFavoriteFromDB($id, $userId = null)
+    public function getFavoriteFromDB($id, $userId = null, $category = null)
     {
         $favorite = null;
         $qb = $this->qb;
@@ -238,6 +222,11 @@ class FavoritesService
         if ($userId !== null) {
             $qb->andWhere(
                 $qb->expr()->eq('user_id', $qb->createNamedParameter($userId, IQueryBuilder::PARAM_STR))
+            );
+        }
+        if ($category !== null) {
+            $qb->andWhere(
+                $qb->expr()->eq('category', $qb->createNamedParameter($category, IQueryBuilder::PARAM_STR))
             );
         }
         $req = $qb->execute();

@@ -92,7 +92,9 @@ export default {
       this.favoriteCopy.comment = this.favorite.comment;
     },
     handleDeleteClick() {
-      this.$emit("deleteFavorite", this.favorite.id);
+      const { id } = this.favorite;
+
+      this.$emit("deleteFavorite", { id });
     },
     handleFavoriteSubmit() {
       const { id, lat, lng } = this.favorite;

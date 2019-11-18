@@ -27,15 +27,15 @@ class PublicFavoritesApiController extends PublicShareController {
     }
 
     public function getPasswordHash(): string {
-        return '';
+        return ""; // TODO:
     }
 
     protected function isPasswordProtected(): bool {
-        return false;
+        return false; // TODO
     }
 
     public function isValidToken(): bool {
-        return $this->favoritesService->isValidToken($this->getToken());
+        return $this->favoritesService->getFavoritesShare($this->getToken()) !== null;
     }
 
     /**
@@ -59,7 +59,12 @@ class PublicFavoritesApiController extends PublicShareController {
         return new DataResponse($favorites);
     }
 
-    public function addFavorite($lat, $lng, $name, $category, $comment, $extensions) {
+    public function addFavorite($lat, $lng, $name, $comment, $extensions) {
+
+        $share = $this->favoritesService->getFavoritesShare($this->getToken());
+        $category = $share['category'];
+
+
         if (is_numeric($lat) && is_numeric($lng)) {
             $favoriteId = $this->favoritesService->addFavoriteToDB($this->userId, $name, $lat, $lng, $category, $comment, $extensions);
             $favorite = $this->favoritesService->getFavoriteFromDB($favoriteId);
@@ -71,7 +76,11 @@ class PublicFavoritesApiController extends PublicShareController {
     }
 
     public function editFavorite($id, $lat, $lng, $name, $comment, $extensions) {
-        $favorite = $this->favoritesService->getFavoriteFromDB($id, $this->userId);
+        $share = $this->favoritesService->getFavoritesShare($this->getToken());
+
+        //TODO: can $share['owner'] and/or $share['category'] be exploited to be null?
+
+        $favorite = $this->favoritesService->getFavoriteFromDB($id, $share['owner'], $share['category']);
 
         if ($favorite !== null) {
             if (($lat === null || is_numeric($lat)) &&
@@ -92,7 +101,12 @@ class PublicFavoritesApiController extends PublicShareController {
     }
 
     public function deleteFavorite($id) {
-        $favorite = $this->favoritesService->getFavoriteFromDB($id, $this->userId);
+        $share = $this->favoritesService->getFavoritesShare($this->getToken());
+
+        //TODO: can $share['owner'] and/or $share['category'] be exploited to be null?
+
+        $favorite = $this->favoritesService->getFavoriteFromDB($id, $share['owner'], $share['category']);
+
         if ($favorite !== null) {
             $this->favoritesService->deleteFavoriteFromDB($id);
             return new DataResponse('deleted');
@@ -102,7 +116,7 @@ class PublicFavoritesApiController extends PublicShareController {
         }
     }
 
-    private function addCsp($response) {
+    /*private function addCsp($response) {
         if (class_exists('OCP\AppFramework\Http\ContentSecurityPolicy')) {
             $csp = new \OCP\AppFramework\Http\ContentSecurityPolicy();
             // map tiles
@@ -146,5 +160,5 @@ class PublicFavoritesApiController extends PublicShareController {
             $csp->addAllowedConnectDomain('https://nominatim.openstreetmap.org');
             $response->setContentSecurityPolicy($csp);
         }
-    }
+    }*/
 }
