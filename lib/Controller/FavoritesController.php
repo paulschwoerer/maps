@@ -141,7 +141,18 @@ class FavoritesController extends Controller {
             return new DataResponse("Category does not exist", 400);
         }
 
-        $response = $this->favoritesService->getCategoryShareLink($category, $this->userId);
+        $response = $this->favoritesService->getCategoryShareLink($this->userId, $category);
+
+        return new DataResponse($response);
+    }
+
+    public function unShareCategory($category) {
+        // TODO: use better way to check if user owns category
+        if ($this->favoritesService->countFavorites($this->userId, [$category], null, null) === 0) {
+            return new DataResponse("Category does not exist", 400);
+        }
+
+        $response = $this->favoritesService->deleteCategoryShareLink($this->userId, $category);
 
         return new DataResponse($response);
     }

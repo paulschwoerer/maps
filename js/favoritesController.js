@@ -131,13 +131,25 @@ FavoritesController.prototype = {
             var shareDialogue = $(this).parent().parent();
 
             if (!this.checked) {
-                // TODO: unshare category
-                OC.Notification.showTemporary(t('maps', 'Unsharing not yet supported'));
-            } else {
-                var url = OC.generateUrl('/apps/maps/favorites-category/' + category + '/share');
                 $.ajax({
                     type: 'POST',
-                    url: url,
+                    url: OC.generateUrl('/apps/maps/favorites-category/' + category + '/un-share'),
+                    data: {},
+                    async: true
+                }).done(function (response) {
+                    const linkEl = shareDialogue.children('.category-sharing-link');
+
+                    linkEl.val('');
+                    linkEl.removeClass('visible');
+                }).always(function () {
+
+                }).fail(function() {
+                    OC.Notification.showTemporary(t('maps', 'Failed to share favorites category'));
+                });
+            } else {
+                $.ajax({
+                    type: 'POST',
+                    url:  OC.generateUrl('/apps/maps/favorites-category/' + category + '/share'),
                     data: {},
                     async: true
                 }).done(function (response) {

@@ -386,7 +386,7 @@ class FavoritesService
         $qb = $qb->resetQueryParts();
     }
 
-    public function getCategoryShareLink($category, $owner)
+    public function getCategoryShareLink($owner, $category)
     {
         $qb = $this->qb;
 
@@ -423,6 +423,23 @@ class FavoritesService
 
         return [
             'token' => $token
+        ];
+    }
+
+    public function deleteCategoryShareLink($owner, $category) {
+        $qb = $this->qb;
+
+        $qb->delete('maps_favorite_shares')
+            ->where(
+                $qb->expr()->eq('owner', $qb->createNamedParameter($owner, IQueryBuilder::PARAM_STR))
+            )->andWhere(
+                $qb->expr()->eq('category', $qb->createNamedParameter($category, IQueryBuilder::PARAM_STR))
+            );
+        $qb->execute();
+        $qb->resetQueryParts();
+
+        return [
+            'deleted' => true
         ];
     }
 

@@ -69,6 +69,7 @@ return [
         ['name' => 'favorites#renameCategories', 'url' => '/favorites-category', 'verb' => 'PUT'],
         ['name' => 'favorites#getSharedCategories', 'url' => '/favorites-category/shared-categories', 'verb' => 'GET'],
         ['name' => 'favorites#shareCategory', 'url' => '/favorites-category/{category}/share', 'verb' => 'POST'],
+        ['name' => 'favorites#unShareCategory', 'url' => '/favorites-category/{category}/un-share', 'verb' => 'POST'],
 
         ['name' => 'favorites#exportFavorites', 'url' => '/export/favorites', 'verb' => 'POST'],
         ['name' => 'favorites#importFavorites', 'url' => '/import/favorites', 'verb' => 'POST'],
